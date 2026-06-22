@@ -73,6 +73,13 @@ final class Model: ObservableObject {
         if retractedIds.contains(id) { retractedIds.remove(id) } else { retractedIds.insert(id) }
     }
 
+    var allRetracted: Bool { !apps.isEmpty && apps.allSatisfy { retractedIds.contains($0.id) } }
+    func toggleSuspendAll() {                     // 一键全部挂起 / 全部恢复
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.6)) {
+            if allRetracted { retractedIds.removeAll() } else { retractedIds = Set(apps.map { $0.id }) }
+        }
+    }
+
     func peek() {                                // 来消息 → 探头几秒再自动收起
         if hovering { return }
         peeking = true
@@ -254,13 +261,17 @@ struct NotchDockView: View {
 
 // MARK: - 窗口 / App
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    func menuWillOpen(_ menu: NSMenu) { refreshLoginState() }   // 打开菜单时刷新自启勾选
+    func menuWillOpen(_ menu: NSMenu) {                          // 打开菜单时刷新状态
+        refreshLoginState()
+        suspendItem?.title = model.allRetracted ? "全部恢复" : "全部挂起"
+    }
     let model = Model()
     var window: NSPanel!
     var timer: Timer?
     var hoverTimer: Timer?
     var statusItem: NSStatusItem!
     weak var loginItem: NSMenuItem?
+    weak var suspendItem: NSMenuItem?
     #if canImport(Sparkle)
     var updater: SPUStandardUpdaterController!     // Sparkle 自动更新控制器
     #endif
@@ -324,6 +335,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let menu = NSMenu()
         menu.delegate = self
+        let susp = NSMenuItem(title: "全部挂起", action: #selector(toggleSuspendAll), keyEquivalent: "s")
+        susp.target = self; menu.addItem(susp); suspendItem = susp
+        menu.addItem(.separator())
         #if canImport(Sparkle)
         let upd = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
         upd.target = self; menu.addItem(upd)
@@ -340,6 +354,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func refreshLoginState() {
         loginItem?.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
     }
+
+    @objc func toggleSuspendAll() { model.toggleSuspendAll() }
 
     @objc func checkForUpdates() {
         #if canImport(Sparkle)
