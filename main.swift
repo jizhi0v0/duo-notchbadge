@@ -272,7 +272,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     weak var loginItem: NSMenuItem?
     weak var suspendItem: NSMenuItem?
-    var contextMenu: NSMenu!
     #if canImport(Sparkle)
     var updater: SPUStandardUpdaterController!     // Sparkle 自动更新控制器
     #endif
@@ -327,17 +326,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // 菜单栏铃铛:左键=全部挂起/恢复(一键),右键=菜单(查更新/开机自启/退出)
+    // 菜单栏铃铛:点一下弹菜单,第一项就是「全部挂起/恢复」(状态栏左右键检测不稳,用最可靠的常驻菜单)
     func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let img = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "NotchBadge") {
             img.isTemplate = true
             statusItem.button?.image = img
         }
-        statusItem.button?.toolTip = "点击:全部挂起/恢复 · 右键:菜单"
-        statusItem.button?.target = self
-        statusItem.button?.action = #selector(statusClicked)
-        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        statusItem.button?.toolTip = "NotchBadge — 点击打开菜单"
 
         let menu = NSMenu()
         menu.delegate = self
@@ -353,20 +349,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "退出 NotchBadge", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self; menu.addItem(quit)
-        contextMenu = menu
+        statusItem.menu = menu
         refreshLoginState()
-    }
-
-    @objc func statusClicked() {
-        let e = NSApp.currentEvent
-        let isRight = e?.type == .rightMouseUp || e?.modifierFlags.contains(.control) == true
-        if isRight {
-            statusItem.menu = contextMenu              // 右键:临时挂菜单弹出
-            statusItem.button?.performClick(nil)
-            statusItem.menu = nil                       // 弹完清掉,左键才会走 action
-        } else {
-            model.toggleSuspendAll()                    // 左键:一键挂起/恢复
-        }
     }
 
     func refreshLoginState() {
