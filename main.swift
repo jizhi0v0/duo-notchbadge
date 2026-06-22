@@ -381,13 +381,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let screen = NSScreen.main, let panel = window else { return }
         let f = screen.frame
         let topInset = f.maxY - screen.visibleFrame.maxY                 // 菜单栏/刘海高度
-        let n = max(model.apps.count, 1)
+        // 宽度按「至少 8 个」算:常用角标数量下增减不改窗口大小,内容在稳定窗口里平滑动画(避免掉帧)
+        let n = max(model.apps.count, 8)
         let iconsW = CGFloat(n) * (UI.iconSize + UI.spacing)
-        let w = UI.clearance * 2 + iconsW + UI.spacing                  // 预留展开宽度,探头不被裁
+        let w = UI.clearance * 2 + iconsW + UI.spacing
         let h = UI.threadLen + UI.pullMax + UI.iconSize + 24
         let x = f.midX - w / 2                                          // 居中挂在刘海下
         let y = f.maxY - topInset - h - UI.gapBelowNotch
-        panel.setFrame(.init(x: x, y: y, width: w, height: h), display: true)
+        let nf = NSRect(x: x, y: y, width: w, height: h)
+        if panel.frame != nf { panel.setFrame(nf, display: true) }      // 没变就不重设,免得每 0.7s 强制重绘
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
 
