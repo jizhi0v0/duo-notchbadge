@@ -56,6 +56,7 @@ final class Model: ObservableObject {
     @Published var peeking = false               // 来消息临时探头
     @Published var retractedIds: Set<String> = []  // 被手动收起的 app(只剩小角标钮)
     var dragging = false                          // 正在拖某个图标(拖动期间保持可交互,非 @Published 免重渲染)
+    var frontmostPath: String?                    // 当前最前台 app 的路径 → 不显示它的角标(你已经在看了)
     private var peekWork: DispatchWorkItem?
     private var prevBadge: [String: Int] = [:]
     private var prevToken: [String: Int] = [:]
@@ -127,6 +128,8 @@ final class Model: ObservableObject {
             next.append(BadgeApp(id: "debug", name: "debug", path: pp,
                                  icon: icon(forPath: pp), badge: "9", bounceToken: 0))
         }
+        // 当前正在用的那个 app 不显示它的角标(你已经在前台看着了)
+        if let fp = frontmostPath { next.removeAll { !$0.path.isEmpty && $0.path == fp } }
         let result = next.sorted { $0.name < $1.name }
         let sig = result.map { "\($0.id)|\($0.badge)|\($0.bounceToken)" }.joined(separator: ",")
         if sig == lastSig { return }             // 内容没变就不重发,避免打断摆动→闪烁
@@ -282,6 +285,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         #endif
         setupMenuBar()
+        observeFrontmost()
 
         let panel = NSPanel(contentRect: .init(x: 0, y: 0, width: 80, height: 90),
                             styleMask: [.borderless, .nonactivatingPanel],
@@ -373,6 +377,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func quitApp() { NSApp.terminate(nil) }
+
+    // 跟踪最前台 app,切换时立刻重算(当前 app 的角标不显示)
+    func observeFrontmost() {
+        model.frontmostPath = NSWorkspace.shared.frontmostApplication?.bundleURL?.path
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            self?.model.frontmostPath = app?.bundleURL?.path
+            self?.tick()
+        }
+    }
 
     func tick() {
         model.refresh()
