@@ -30,7 +30,7 @@
     <string>NSApplication</string>
     <!-- Sparkle 自动更新 -->
     <key>SUFeedURL</key>
-    <string>https://github.com/jizhi0v0/duo-notchbadge/releases/latest/download/appcast.xml</string>
+    <string>https://github.com/jizhi0v0/duo-notchbadge-releases/releases/latest/download/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>zfu9N69fMyLmg5tmeU6PpT+SImFDYAhaVfR1yERIQCE=</string>
     <key>SUEnableAutomaticChecks</key>

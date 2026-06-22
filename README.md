@@ -32,17 +32,22 @@ NOTCH_DEBUG=1 swift main.swift --debug   # 持续左右摆,看动画
    ./fetch-sparkle.sh && ./build.sh && ./release.sh   # → NotchBadge.dmg(签名+公证+装订)
    ```
 
+## 仓库结构
+- **本仓 `duo-notchbadge`(私有)**:源码、构建/发布脚本。
+- **`duo-notchbadge-releases`(公开)**:只放 release(dmg + appcast)给用户下载/自动更新。
+  `SUFeedURL` 指向它的 `releases/latest/download/appcast.xml`。
+
 ## 发新版(Sparkle 自动更新)
-appcast 走 GitHub release 的 `latest/download/appcast.xml`(已写进 Info.plist `SUFeedURL`)。
 更新签名公钥 `SUPublicEDKey` 已在 Info.plist;私钥在你的钥匙串(`generate_keys` 生成)。
 1. 改 `Info.plist` 的 `CFBundleVersion`(+1)和 `CFBundleShortVersionString`,`./build.sh && ./release.sh`。
-2. 建 release(tag 如 `v1.1`)传 dmg;再生成并上传签名后的 appcast:
+2. 在**发布仓**建 release(tag 如 `v1.1`)传 dmg,再生成并上传签名 appcast:
    ```bash
-   gh release create v1.1 NotchBadge.dmg --repo jizhi0v0/duo-notchbadge -t "NotchBadge 1.1" -n "更新说明"
+   REL=jizhi0v0/duo-notchbadge-releases
+   gh release create v1.1 NotchBadge.dmg --repo "$REL" -t "NotchBadge 1.1" -n "更新说明"
    d=$(mktemp -d); cp NotchBadge.dmg "$d"/
    ./.sparkle/bin/generate_appcast --download-url-prefix \
-     "https://github.com/jizhi0v0/duo-notchbadge/releases/download/v1.1/" "$d"
-   gh release upload v1.1 "$d/appcast.xml" --repo jizhi0v0/duo-notchbadge
+     "https://github.com/$REL/releases/download/v1.1/" "$d"
+   gh release upload v1.1 "$d/appcast.xml" --repo "$REL"
    ```
    旧用户的 app 后台轮询到新 appcast → 弹更新。
 

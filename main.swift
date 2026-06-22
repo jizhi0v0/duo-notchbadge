@@ -1,6 +1,7 @@
 import Cocoa
 import SwiftUI
 import ApplicationServices
+import ServiceManagement   // 开机自启(SMAppService)
 #if canImport(Sparkle)
 import Sparkle      // 带 -F .sparkle 编译时启用;swift main.swift 直接跑会自动跳过
 #endif
@@ -252,11 +253,14 @@ struct NotchDockView: View {
 }
 
 // MARK: - 窗口 / App
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    func menuWillOpen(_ menu: NSMenu) { refreshLoginState() }   // 打开菜单时刷新自启勾选
     let model = Model()
     var window: NSPanel!
     var timer: Timer?
     var hoverTimer: Timer?
+    var statusItem: NSStatusItem!
+    weak var loginItem: NSMenuItem?
     #if canImport(Sparkle)
     var updater: SPUStandardUpdaterController!     // Sparkle 自动更新控制器
     #endif
@@ -266,6 +270,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         #if canImport(Sparkle)
         updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         #endif
+        setupMenuBar()
 
         let panel = NSPanel(contentRect: .init(x: 0, y: 0, width: 80, height: 90),
                             styleMask: [.borderless, .nonactivatingPanel],
@@ -309,6 +314,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.open(url)
         }
     }
+
+    // 菜单栏状态项:查更新 / 开机自启 / 退出(app 没别的 UI 入口,靠这个)
+    func setupMenuBar() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let img = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "NotchBadge") {
+            img.isTemplate = true
+            statusItem.button?.image = img
+        }
+        let menu = NSMenu()
+        menu.delegate = self
+        #if canImport(Sparkle)
+        let upd = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
+        upd.target = self; menu.addItem(upd)
+        #endif
+        let login = NSMenuItem(title: "开机自启", action: #selector(toggleLogin), keyEquivalent: "")
+        login.target = self; menu.addItem(login); loginItem = login
+        menu.addItem(.separator())
+        let quit = NSMenuItem(title: "退出 NotchBadge", action: #selector(quitApp), keyEquivalent: "q")
+        quit.target = self; menu.addItem(quit)
+        statusItem.menu = menu
+        refreshLoginState()
+    }
+
+    func refreshLoginState() {
+        loginItem?.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
+    }
+
+    @objc func checkForUpdates() {
+        #if canImport(Sparkle)
+        updater.checkForUpdates(nil)
+        #endif
+    }
+
+    @objc func toggleLogin() {
+        let svc = SMAppService.mainApp
+        do { svc.status == .enabled ? try svc.unregister() : try svc.register() }
+        catch { NSLog("login toggle: \(error)") }
+        refreshLoginState()
+    }
+
+    @objc func quitApp() { NSApp.terminate(nil) }
 
     func tick() {
         model.refresh()
