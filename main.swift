@@ -286,6 +286,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
         setupMenuBar()
         observeFrontmost()
+        // 插拔显示器/分辨率变化 → 重新挑刘海屏并定位
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
+                                               object: nil, queue: .main) { [weak self] _ in self?.layout() }
 
         let panel = NSPanel(contentRect: .init(x: 0, y: 0, width: 80, height: 90),
                             styleMask: [.borderless, .nonactivatingPanel],
@@ -395,10 +398,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.async { [weak self] in self?.layout() }
     }
 
+    // 优先挑带刘海的那块屏(多屏/外接时也落在刘海下);没有刘海就用主屏(挂在菜单栏中间)
+    func targetScreen() -> NSScreen? {
+        if let notched = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) { return notched }
+        return NSScreen.main ?? NSScreen.screens.first
+    }
+
     func layout() {
-        guard let screen = NSScreen.main, let panel = window else { return }
+        guard let screen = targetScreen(), let panel = window else { return }
         let f = screen.frame
-        let topInset = f.maxY - screen.visibleFrame.maxY                 // 菜单栏/刘海高度
+        let topInset = max(f.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)  // 菜单栏/刘海高度
         // 宽度按「至少 8 个」算:常用角标数量下增减不改窗口大小,内容在稳定窗口里平滑动画(避免掉帧)
         let n = max(model.apps.count, 8)
         let iconsW = CGFloat(n) * (UI.iconSize + UI.spacing)
