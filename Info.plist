@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>NotchBadge</string>
+    <key>CFBundleDisplayName</key>
+    <string>NotchBadge</string>
+    <key>CFBundleExecutable</key>
+    <string>NotchBadge</string>
+    <!-- 改成你自己的反向域名 -->
+    <key>CFBundleIdentifier</key>
+    <string>dev.jizhi.notchbadge</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <!-- 后台代理 app:不占 Dock、无主窗口 -->
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <!-- Sparkle 自动更新 -->
+    <key>SUFeedURL</key>
+    <string>https://github.com/jizhi0v0/duo-notchbadge/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>zfu9N69fMyLmg5tmeU6PpT+SImFDYAhaVfR1yERIQCE=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
+</dict>
+</plist>
